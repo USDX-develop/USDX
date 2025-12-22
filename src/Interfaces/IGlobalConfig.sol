@@ -8,8 +8,8 @@ interface IGlobalConfig {
     // --- Structs ---
 
     struct Config {
-        bool mintParsed; // Freeze new operations (open, adjust up)
-        bool redeemParsed; // Freeze new operations (close, adjust down)
+        bool mintPaused; // Freeze new operations (open, adjust up)
+        bool redeemPaused; // Freeze new operations (close, adjust down)
         bool globalPaused; // Pause all operations except close
         uint256 annualInterestRate; // Annual collateral interest rate (18 decimals)
         address treasury; // Treasury address for protocol revenue
@@ -31,8 +31,8 @@ interface IGlobalConfig {
     // --- Events ---
 
     event ConfigUpdated(
-        bool mintParsed,
-        bool redeemParsed,
+        bool mintPaused,
+        bool redeemPaused,
         bool globalPaused,
         uint256 annualInterestRate,
         address treasury,

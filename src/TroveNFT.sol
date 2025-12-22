@@ -43,10 +43,10 @@ contract TroveNFT is
     ) public initializer {
         __ERC721_init(
             string.concat(
-                "Liquity V2 - ",
+                "USDX - ",
                 _addressesRegistry.collToken().name()
             ),
-            string.concat("LV2_", _addressesRegistry.collToken().symbol())
+            string.concat("USDX_", _addressesRegistry.collToken().symbol())
         );
         __ERC721Enumerable_init();
         __Ownable_init();

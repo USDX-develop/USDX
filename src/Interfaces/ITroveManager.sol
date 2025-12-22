@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./ILiquityBase.sol";
+import "./IUSDXBase.sol";
 import "./ITroveNFT.sol";
 import "./IBorrowerOperations.sol";
 import "./IStabilityPool.sol";
@@ -11,7 +11,7 @@ import "./ISortedTroves.sol";
 import "../Types/LatestTroveData.sol";
 
 // Common interface for the Trove Manager.
-interface ITroveManager is ILiquityBase {
+interface ITroveManager is IUSDXBase {
     enum Status {
         nonExistent,
         active,

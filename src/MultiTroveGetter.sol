@@ -5,7 +5,7 @@ pragma solidity 0.8.28;
 import "./Interfaces/ICollateralRegistry.sol";
 import "./Interfaces/IMultiTroveGetter.sol";
 
-/*  Helper contract for grabbing Trove data for the front end. Not part of the core Liquity system. */
+/*  Helper contract for grabbing Trove data for the front end. Not part of the core USDX system. */
 contract MultiTroveGetter is IMultiTroveGetter {
     ICollateralRegistry public immutable collateralRegistry;
 

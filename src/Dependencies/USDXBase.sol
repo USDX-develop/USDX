@@ -3,19 +3,19 @@
 pragma solidity 0.8.28;
 
 import "./Constants.sol";
-import "./LiquityMath.sol";
+import "./USDXMath.sol";
 import "../Interfaces/IAddressesRegistry.sol";
 import "../Interfaces/IActivePool.sol";
 import "../Interfaces/IDefaultPool.sol";
 import "../Interfaces/IPriceFeed.sol";
-import "../Interfaces/ILiquityBase.sol";
+import "../Interfaces/IUSDXBase.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
 /*
  * Base contract for TroveManager, BorrowerOperations and StabilityPool. Contains global system constants and
  * common functions.
  */
-contract LiquityBase is Initializable, ILiquityBase {
+contract USDXBase is Initializable, IUSDXBase {
     IActivePool public activePool;
     IDefaultPool internal defaultPool;
     IPriceFeed internal priceFeed;
@@ -24,8 +24,7 @@ contract LiquityBase is Initializable, ILiquityBase {
     event DefaultPoolAddressChanged(address _newDefaultPoolAddress);
     event PriceFeedAddressChanged(address _newPriceFeedAddress);
 
-    function __LiquityBase_init(IAddressesRegistry _addressesRegistry) internal onlyInitializing {
-        // 初始化逻辑
+    function __USDXBase_init(IAddressesRegistry _addressesRegistry) internal onlyInitializing {
         activePool = _addressesRegistry.activePool();
         defaultPool = _addressesRegistry.defaultPool();
         priceFeed = _addressesRegistry.priceFeed();
@@ -35,8 +34,7 @@ contract LiquityBase is Initializable, ILiquityBase {
         emit PriceFeedAddressChanged(address(priceFeed));
     }
 
-    function __LiquityBase_init_unchained() internal onlyInitializing {
-        // 单独的初始化逻辑
+    function __USDXBase_init_unchained() internal onlyInitializing {
     }
 
     // --- Gas compensation functions ---
@@ -67,7 +65,7 @@ contract LiquityBase is Initializable, ILiquityBase {
         uint256 entireSystemColl = getEntireBranchColl();
         uint256 entireSystemDebt = getEntireBranchDebt();
 
-        TCR = LiquityMath._computeCR(
+        TCR = USDXMath._computeCR(
             entireSystemColl,
             entireSystemDebt,
             _price

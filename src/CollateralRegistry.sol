@@ -10,7 +10,7 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IUSDXToken.sol";
 import "./Dependencies/Constants.sol";
-import "./Dependencies/LiquityMath.sol";
+import "./Dependencies/USDXMath.sol";
 
 import "./Interfaces/ICollateralRegistry.sol";
 
@@ -267,14 +267,14 @@ contract CollateralRegistry is
         uint256 newBaseRate = decayedBaseRate +
             redeemedUSDXFraction /
             REDEMPTION_BETA;
-        newBaseRate = LiquityMath._min(newBaseRate, DECIMAL_PRECISION); // cap baseRate at a maximum of 100%
+        newBaseRate = USDXMath._min(newBaseRate, DECIMAL_PRECISION); // cap baseRate at a maximum of 100%
 
         return newBaseRate;
     }
 
     function _calcDecayedBaseRate() internal view returns (uint256) {
         uint256 minutesPassed = _minutesPassedSinceLastFeeOp();
-        uint256 decayFactor = LiquityMath._decPow(
+        uint256 decayFactor = USDXMath._decPow(
             REDEMPTION_MINUTE_DECAY_FACTOR,
             minutesPassed
         );
@@ -286,7 +286,7 @@ contract CollateralRegistry is
         uint256 _baseRate
     ) internal pure returns (uint256) {
         return
-            LiquityMath._min(
+            USDXMath._min(
                 REDEMPTION_FEE_FLOOR + _baseRate,
                 DECIMAL_PRECISION // cap at a maximum of 100%
             );

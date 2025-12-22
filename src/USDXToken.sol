@@ -12,11 +12,11 @@ import "./Interfaces/IUSDXToken.sol";
 /*
  * --- Functionality added specific to the USDXToken ---
  *
- * 1) Transfer protection: blacklist of addresses that are invalid recipients (i.e. core Liquity contracts) in external
- * transfer() and transferFrom() calls. The purpose is to protect users from losing tokens by mistakenly sending USDX directly to a Liquity
+ * 1) Transfer protection: blacklist of addresses that are invalid recipients (i.e. core USDX contracts) in external
+ * transfer() and transferFrom() calls. The purpose is to protect users from losing tokens by mistakenly sending USDX directly to a USDX
  * core contract, when they should rather call the right function.
  *
- * 2) sendToPool() and returnFromPool(): functions callable only Liquity core contracts, which move USDX tokens between Liquity <-> user.
+ * 2) sendToPool() and returnFromPool(): functions callable only USDX core contracts, which move USDX tokens between USDX <-> user.
  */
 
 contract USDXToken is
@@ -87,7 +87,7 @@ contract USDXToken is
         emit CollateralRegistryAddressChanged(_collateralRegistryAddress);
     }
 
-    // --- Functions for intra-Liquity calls ---
+    // --- Functions for intra-USDX calls ---
 
     function mint(address _account, uint256 _amount) external override {
         _requireCallerIsBOorAP();

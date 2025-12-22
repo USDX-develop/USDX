@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.28;
 
-import "./Dependencies/LiquityBase.sol";
+import "./Dependencies/USDXBase.sol";
 import "./Dependencies/LiquidationLib.sol";
 
 import "./Interfaces/IAddressesRegistry.sol";
@@ -24,7 +24,7 @@ contract TroveManager is
     Initializable,
     OwnableUpgradeable,
     UUPSUpgradeable,
-    LiquityBase,
+USDXBase,
     ITroveManager,
     ITroveEvents
 {
@@ -173,7 +173,7 @@ contract TroveManager is
         IAddressesRegistry _addressesRegistry
     ) public initializer {
         __Ownable_init();
-        __LiquityBase_init(_addressesRegistry);
+        __USDXBase_init(_addressesRegistry);
         transferOwnership(initialOwner);
         WETH = _addressesRegistry.WETH();
 
@@ -377,7 +377,7 @@ contract TroveManager is
         // - If the SP has total deposits >= 1e18, we leave 1e18 in it untouched.
         // - If it has 0 < x < 1e18 total deposits, we leave x in it.
         uint256 totalUSDXDeposits = stabilityPoolCached.getTotalUSDXDeposits();
-        uint256 usdxToLeaveInSP = LiquityMath._min(
+        uint256 usdxToLeaveInSP = USDXMath._min(
             MIN_USDX_IN_SP,
             totalUSDXDeposits
         );
@@ -628,7 +628,7 @@ contract TroveManager is
         _getLatestTroveData(_singleRedemption.troveId, _singleRedemption.trove);
 
         // Determine the remaining amount (lot) to be redeemed, capped by the entire debt of the Trove
-        _singleRedemption.usdxLot = LiquityMath._min(
+        _singleRedemption.usdxLot = USDXMath._min(
             _maxUSDXamount,
             _singleRedemption.trove.entireDebt
         );
@@ -787,7 +787,7 @@ contract TroveManager is
         SingleRedemptionValues memory _singleRedemption
     ) internal {
         // Determine the remaining amount (lot) to be redeemed, capped by the entire debt of the Trove minus the liquidation reserve
-        _singleRedemption.usdxLot = LiquityMath._min(
+        _singleRedemption.usdxLot = USDXMath._min(
             _maxUSDXamount,
             _singleRedemption.trove.entireDebt
         );
@@ -901,7 +901,7 @@ contract TroveManager is
         LatestTroveData memory trove;
         _getLatestTroveData(_troveId, trove);
         return
-            LiquityMath._computeCR(trove.entireColl, trove.entireDebt, _price);
+            USDXMath._computeCR(trove.entireColl, trove.entireDebt, _price);
     }
 
     // Return the Nominal Collateral Ratio (NCR) of a given Trove. Takes a trove's pending coll and debt rewards from redistributions into account.
@@ -911,7 +911,7 @@ contract TroveManager is
         LatestTroveData memory trove;
         _getLatestTroveData(_troveId, trove);
         return
-            LiquityMath._computeNominalCR(trove.entireColl, trove.entireDebt);
+            USDXMath._computeNominalCR(trove.entireColl, trove.entireDebt);
     }
 
     function _updateTroveRewardSnapshots(uint256 _troveId) internal {
@@ -989,7 +989,6 @@ contract TroveManager is
              * - When we close or liquidate a trove, we redistribute the redistribution gains, so if all troves were closed/liquidated,
              * rewards would’ve been emptied and totalCollateralSnapshot would be zero too.
              */
-            // assert(totalStakesSnapshot > 0);
             stake = (_coll * totalStakesSnapshot) / totalCollateralSnapshot;
         }
         return stake;
@@ -1067,8 +1066,6 @@ contract TroveManager is
     ) internal {
         uint64 index = Troves[_troveId].arrayIndex;
         uint256 idxLast = TroveIdsArrayLength - 1;
-
-        // assert(index <= idxLast);
 
         uint256 idToMove = TroveIds[idxLast];
 

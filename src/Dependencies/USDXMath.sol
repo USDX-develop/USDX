@@ -4,7 +4,7 @@ pragma solidity 0.8.28;
 
 import {DECIMAL_PRECISION} from "./Constants.sol";
 
-library LiquityMath {
+library USDXMath {
     function _min(uint256 _a, uint256 _b) internal pure returns (uint256) {
         return (_a < _b) ? _a : _b;
     }
@@ -99,7 +99,6 @@ library LiquityMath {
         }
         // Return the maximal value for uint256 if the debt is 0. Represents "infinite" CR.
         else {
-            // if (_debt == 0)
             return 2 ** 256 - 1;
         }
     }

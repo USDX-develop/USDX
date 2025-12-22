@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./ILiquityBase.sol";
+import "./IUSDXBase.sol";
 import "./IAddRemoveManagers.sol";
 import "./IUSDXToken.sol";
 import "./IPriceFeed.sol";
@@ -11,7 +11,7 @@ import "./ITroveManager.sol";
 import "./IWETH.sol";
 
 // Common interface for the Borrower Operations.
-interface IBorrowerOperations is ILiquityBase, IAddRemoveManagers {
+interface IBorrowerOperations is IUSDXBase, IAddRemoveManagers {
 
     function openTrove(
         address _owner,

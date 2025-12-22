@@ -63,8 +63,8 @@ contract GlobalConfig is Initializable, OwnableUpgradeable, UUPSUpgradeable, IGl
         config = _config;
 
         emit ConfigUpdated(
-            config.mintParsed,
-            config.redeemParsed,
+            config.mintPaused,
+            config.redeemPaused,
             config.globalPaused,
             config.annualInterestRate,
             config.treasury,

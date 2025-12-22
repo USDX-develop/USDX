@@ -56,7 +56,7 @@ contract CollateralConfig is
         activePool = IActivePool(_activePool);
 
         config = Config({
-            isFrozen: _globalConfig.getConfig().mintParsed,
+            isFrozen: _globalConfig.getConfig().mintPaused,
             isPaused: _globalConfig.getConfig().globalPaused,
             annualInterestRate: _globalConfig.getConfig().annualInterestRate,
             treasury: _globalConfig.getConfig().treasury,
@@ -197,39 +197,6 @@ contract CollateralConfig is
         ITroveManager troveManagerCached = ITroveManager(_troveManager);
         config.annualInterestRate = _rate;
         emit AnnualInterestRateUpdated(_rate);
-
-        // This ensures historical interest is calculated at the old rate
-        uint256[] memory troveIds = troveManagerCached.getTroveIds();
-        for (uint256 i = 0; i < troveIds.length; i++) {
-            uint256 troveId = troveIds[i];
-            adjustTroveInterestRate(troveIds[i], _rate, troveManagerCached);
-        }
-    }
-
-    function adjustTroveInterestRate(
-        uint256 _troveId,
-        uint256 _newAnnualInterestRate,
-        ITroveManager _troveManager
-    ) internal {
-        requireNotPausedOrFrozen(false, false);
-
-        ITroveManager troveManagerCached = _troveManager;
-
-        _requireTroveIsActive(troveManagerCached, _troveId);
-
-        LatestTroveData memory trove = troveManagerCached.getLatestTroveData(_troveId);
-
-        uint256 newDebt = trove.entireDebt;
-
-        TroveChange memory troveChange;
-        troveChange.appliedRedistUSDXDebtGain = trove.redistUSDXDebtGain;
-        troveChange.appliedRedistCollGain = trove.redistCollGain;
-
-        activePool.mintAggInterestAndAccountForTroveChange(troveChange);
-
-        troveManagerCached.onAdjustTroveInterestRate(
-            _troveId, trove.entireColl, newDebt, troveChange
-        );
     }
 
     /**
@@ -421,11 +388,11 @@ contract CollateralConfig is
             revert CollateralPaused();
         }
 
-        if (_isIncrease && (config.isFrozen || globalConfig.getConfig().mintParsed)) {
+        if (_isIncrease && (config.isFrozen || globalConfig.getConfig().mintPaused)) {
             revert CollateralFrozen();
         }
 
-        if (_isDecrease && globalConfig.getConfig().redeemParsed) {
+        if (_isDecrease && globalConfig.getConfig().redeemPaused) {
             revert CollateralFrozen();
         }
     }

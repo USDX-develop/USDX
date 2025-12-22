@@ -14,7 +14,7 @@ import "./Interfaces/IUSDXToken.sol";
 import "./Interfaces/ICollSurplusPool.sol";
 import "./Interfaces/ISortedTroves.sol";
 import "./Interfaces/ICollateralConfig.sol";
-import "./Dependencies/LiquityBase.sol";
+import "./Dependencies/USDXBase.sol";
 import "./Dependencies/AddRemoveManagers.sol";
 import "./Types/LatestTroveData.sol";
 
@@ -22,7 +22,7 @@ contract BorrowerOperations is
     Initializable,
     OwnableUpgradeable,
     UUPSUpgradeable,
-    LiquityBase,
+USDXBase,
     AddRemoveManagers,
     IBorrowerOperations
 {
@@ -127,7 +127,7 @@ contract BorrowerOperations is
 
     function initialize(address initialOwner, IAddressesRegistry _addressesRegistry) public initializer {
         __Ownable_init();
-        __LiquityBase_init(_addressesRegistry);
+        __USDXBase_init(_addressesRegistry);
         __AddRemoveManagers_init(_addressesRegistry);
         transferOwnership(initialOwner);
     }
@@ -143,7 +143,7 @@ contract BorrowerOperations is
         emit DefaultPoolAddressChanged(address(defaultPool));
         emit PriceFeedAddressChanged(address(priceFeed));
 
-        // Allow funds movements between Liquity contracts
+        // Allow funds movements between USDX contracts
         collToken.approve(address(activePool), type(uint256).max);
 
         troveNFT = _addressesRegistry.troveNFT();
@@ -197,7 +197,7 @@ contract BorrowerOperations is
         troveManager.onOpenTrove(_owner, vars.troveId, vars.change);
 
         // Use NCR (Nominal Collateral Ratio) for sorting
-        uint256 ncr = LiquityMath._computeNominalCR(
+        uint256 ncr = USDXMath._computeNominalCR(
             vars.change.collIncrease,
             vars.change.debtIncrease
         );
@@ -246,7 +246,7 @@ contract BorrowerOperations is
         vars.entireDebt = _change.debtIncrease;
         _requireAtLeastMinDebt(vars.entireDebt);
 
-        vars.ICR = LiquityMath._computeCR(
+        vars.ICR = USDXMath._computeCR(
             _collAmount,
             vars.entireDebt,
             vars.price
@@ -409,7 +409,7 @@ contract BorrowerOperations is
         LatestTroveData memory trove = troveManagerCached.getLatestTroveData(
             _troveId
         );
-        uint256 ncr = LiquityMath._computeNominalCR(
+        uint256 ncr = USDXMath._computeNominalCR(
             trove.entireColl,
             trove.entireDebt
         );
@@ -509,7 +509,7 @@ contract BorrowerOperations is
         // Now the max repayment is capped to stay above troveManager.minDebt(), so this only applies to adjustZombieTrove
         _requireAtLeastMinDebt(vars.newDebt);
 
-        vars.newICR = LiquityMath._computeCR(
+        vars.newICR = USDXMath._computeCR(
             vars.newColl,
             vars.newDebt,
             vars.price
@@ -625,7 +625,7 @@ contract BorrowerOperations is
             troveManagerCached.setTroveStatusToActive(_troveId);
             _reInsertIntoSortedTroves(
                 _troveId,
-                LiquityMath._computeNominalCR(
+                USDXMath._computeNominalCR(
                     trove.entireColl,
                     trove.entireDebt
                 ),
@@ -664,7 +664,7 @@ contract BorrowerOperations is
         if (newOracleFailureDetected) return;
 
         // Otherwise, proceed with the TCR check:
-        uint256 TCR = LiquityMath._computeCR(totalColl, totalDebt, price);
+        uint256 TCR = USDXMath._computeCR(totalColl, totalDebt, price);
         if (TCR >= collateralConfig.getSCR()) revert TCRNotBelowSCR();
 
         _applyShutdown();
@@ -988,6 +988,6 @@ contract BorrowerOperations is
 
         totalDebt -= _troveChange.debtDecrease;
 
-        newTCR = LiquityMath._computeCR(totalColl, totalDebt, _price);
+        newTCR = USDXMath._computeCR(totalColl, totalDebt, _price);
     }
 }

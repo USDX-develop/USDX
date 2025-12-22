@@ -12,7 +12,7 @@ import "./Interfaces/IAddressesRegistry.sol";
 import "./Interfaces/IStabilityPoolEvents.sol";
 import "./Interfaces/ITroveManager.sol";
 import "./Interfaces/IUSDXToken.sol";
-import "./Dependencies/LiquityBase.sol";
+import "./Dependencies/USDXBase.sol";
 
 /*
  * The Stability Pool holds USDX tokens deposited by Stability Pool depositors.
@@ -43,7 +43,6 @@ import "./Dependencies/LiquityBase.sol";
  * Stability Pool, they get a snapshot of the latest P and S: P_t and S_t, respectively.
  *
  * The formula for a depositor's accumulated Coll gain is derived here:
- * https://github.com/liquity/dev/blob/main/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
  * For a given deposit d_t, the ratio P/P_t tells us the factor by which a deposit has decreased since it joined the Stability Pool,
  * and the term d_t * (S - S_t)/P_t gives us the deposit's total accumulated Coll gain.
@@ -114,7 +113,6 @@ import "./Dependencies/LiquityBase.sol";
  * --- UPDATING P WHEN A LIQUIDATION OCCURS ---
  *
  * Please see the implementation spec in the proof document, which closely follows on from the compounded deposit / Coll gain derivations:
- * https://github.com/liquity/liquity/blob/master/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
  *
  */
@@ -122,7 +120,7 @@ contract StabilityPool is
     Initializable,
     OwnableUpgradeable,
     UUPSUpgradeable,
-    LiquityBase,
+USDXBase,
     IStabilityPool,
     IStabilityPoolEvents
 {
@@ -209,7 +207,7 @@ contract StabilityPool is
 
     function initialize(address initialOwner, IAddressesRegistry _addressesRegistry) public initializer {
         __Ownable_init();
-        __LiquityBase_init(_addressesRegistry);
+        __USDXBase_init(_addressesRegistry);
         transferOwnership(initialOwner);
 
         P = P_PRECISION;
@@ -348,7 +346,7 @@ contract StabilityPool is
         uint256 currentCollGain = getDepositorCollGain(msg.sender);
         uint256 currentYieldGain = getDepositorYieldGain(msg.sender);
         uint256 compoundedUSDXDeposit = getCompoundedUSDXDeposit(msg.sender);
-        uint256 usdxToWithdraw = LiquityMath._min(
+        uint256 usdxToWithdraw = USDXMath._min(
             _amount,
             compoundedUSDXDeposit
         );
@@ -568,7 +566,7 @@ contract StabilityPool is
         }
 
         return
-            LiquityMath._min(
+            USDXMath._min(
                 (initialDeposit * normalizedGains) / snapshots.P,
                 collBalance
             );
@@ -593,7 +591,7 @@ contract StabilityPool is
         }
 
         return
-            LiquityMath._min(
+            USDXMath._min(
                 (initialDeposit * normalizedGains) / snapshots.P,
                 yieldGainsOwed
             );
@@ -632,7 +630,7 @@ contract StabilityPool is
         }
 
         return
-            LiquityMath._min(
+            USDXMath._min(
                 (initialDeposit * normalizedGains) / snapshots.P,
                 newYieldGainsOwed
             );

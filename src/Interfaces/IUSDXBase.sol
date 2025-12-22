@@ -6,7 +6,7 @@ import "./IActivePool.sol";
 import "./IDefaultPool.sol";
 import "./IPriceFeed.sol";
 
-interface ILiquityBase {
+interface IUSDXBase {
     function activePool() external view returns (IActivePool);
 
     function getEntireBranchDebt() external view returns (uint256);

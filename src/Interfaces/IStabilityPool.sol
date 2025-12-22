@@ -3,7 +3,7 @@
 pragma solidity ^0.8.0;
 
 import "./IActivePool.sol";
-import "./ILiquityBase.sol";
+import "./IUSDXBase.sol";
 import "./IUSDXToken.sol";
 import "./ITroveManager.sol";
 import "./IUSDXRewardsReceiver.sol";
@@ -25,10 +25,9 @@ import "./IUSDXRewardsReceiver.sol";
  * multiplying it by some factor in range ]0,1[
  *
  * Please see the implementation spec in the proof document, which closely follows on from the compounded deposit / Coll gain derivations:
- * https://github.com/liquity/liquity/blob/master/papers/Scalable_Reward_Distribution_with_Compounding_Stakes.pdf
  *
  */
-interface IStabilityPool is ILiquityBase, IUSDXRewardsReceiver {
+interface IStabilityPool is IUSDXBase, IUSDXRewardsReceiver {
     function usdxToken() external view returns (IUSDXToken);
 
     function troveManager() external view returns (ITroveManager);

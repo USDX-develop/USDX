@@ -12,7 +12,7 @@ import {LatestTroveData} from "./Types/LatestTroveData.sol";
 /*
  * Helper contract used by the frontend to calculate debt-in-front precisely.
  * Now based on NCR (Nominal Collateral Ratio) ranges since SortedTroves sorts by NCR.
- * Not part of the core Liquity system.
+ * Not part of the core USDX system.
  */
 contract DebtInFrontHelper is IDebtInFrontHelper {
     ICollateralRegistry public immutable collateralRegistry;

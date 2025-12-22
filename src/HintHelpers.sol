@@ -3,7 +3,7 @@
 pragma solidity 0.8.28;
 
 import "./Interfaces/ICollateralRegistry.sol";
-import "./Dependencies/LiquityMath.sol";
+import "./Dependencies/USDXMath.sol";
 import "./Dependencies/Constants.sol";
 import "./Interfaces/IHintHelpers.sol";
 
@@ -48,7 +48,7 @@ contract HintHelpers is IHintHelpers {
         }
 
         hintId = sortedTroves.getLast();
-        diff = LiquityMath._getAbsoluteDifference(
+        diff = USDXMath._getAbsoluteDifference(
             _ncr,
             troveManager.getTroveNominalCR(hintId)
         );
@@ -70,7 +70,7 @@ contract HintHelpers is IHintHelpers {
             uint256 currentNCR = troveManager.getTroveNominalCR(currentId);
 
             // check if abs(current - NCR) > abs(closest - NCR), and update closest if current is closer
-            uint256 currentDiff = LiquityMath._getAbsoluteDifference(
+            uint256 currentDiff = USDXMath._getAbsoluteDifference(
                 currentNCR,
                 _ncr
             );

@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
-import "./LiquityMath.sol";
+import "./USDXMath.sol";
 import {DECIMAL_PRECISION, COLL_GAS_COMPENSATION_CAP} from "./Constants.sol";
 
 library LiquidationLib {
-    using LiquityMath for uint256;
+    using USDXMath for uint256;
 
     // Return the amount of Coll to be drawn from a trove's collateral and sent as gas compensation.
     function _getCollGasCompensation(
         uint256 _coll,
         uint256 liquidationPenaltyLiquidator
     ) public pure returns (uint256) {
-        return LiquityMath._min(
+        return USDXMath._min(
             _coll * liquidationPenaltyLiquidator / DECIMAL_PRECISION,
             COLL_GAS_COMPENSATION_CAP
         );
@@ -47,7 +47,7 @@ library LiquidationLib {
          *
          */
         if (_usdxInSPForOffsets > 0) {
-            debtToOffset = LiquityMath._min(
+            debtToOffset = USDXMath._min(
                 _entireTroveDebt,
                 _usdxInSPForOffsets
             );
@@ -85,7 +85,7 @@ library LiquidationLib {
 
         if (collSurplus > 0) {
             uint256 collToDaoNeed = _entireTroveDebt * liquidationPenaltyDao / _price;
-            collToDao = LiquityMath._min(
+            collToDao = USDXMath._min(
                 collToDaoNeed,
                 collSurplus
             );
