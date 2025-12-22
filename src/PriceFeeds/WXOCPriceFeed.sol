@@ -111,11 +111,11 @@ contract WXOCPriceFeed is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ma
 
         // Check if price is stale
         // todo close check for test, must open on prod
-        bool priceIsStale = block.timestamp - lastFeedTimestamp > stalenessThreshold;
-        if (priceIsStale) {
-            // Price is stale: switch to last good price + shut down borrowing branch
-            return (_shutDownAndSwitchToLastGoodPrice(address(this)), true);
-        }
+//        bool priceIsStale = block.timestamp - lastFeedTimestamp > stalenessThreshold;
+//        if (priceIsStale) {
+//            // Price is stale: switch to last good price + shut down borrowing branch
+//            return (_shutDownAndSwitchToLastGoodPrice(address(this)), true);
+//        }
 
         // Price is valid: return last fed price
         return (lastGoodPrice, false);

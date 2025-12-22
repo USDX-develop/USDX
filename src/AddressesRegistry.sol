@@ -10,10 +10,10 @@ import {MIN_LIQUIDATION_PENALTY_SP, MAX_LIQUIDATION_PENALTY_REDISTRIBUTION} from
 import "./Interfaces/IAddressesRegistry.sol";
 
 contract AddressesRegistry is
-    Initializable,
-    OwnableUpgradeable,
-    UUPSUpgradeable,
-    IAddressesRegistry
+Initializable,
+OwnableUpgradeable,
+UUPSUpgradeable,
+IAddressesRegistry
 {
     IERC20Metadata public collToken;
     IBorrowerOperations public borrowerOperations;
@@ -34,23 +34,6 @@ contract AddressesRegistry is
     IUSDXToken public usdxToken;
     IWETH public WETH;
     ICollateralConfig public collateralConfig;
-
-    // Critical system collateral ratio. If the system's total collateral ratio (TCR) falls below the CCR, some borrowing operation restrictions are applied
-    uint256 public immutable CCR;
-    // Shutdown system collateral ratio. If the system's total collateral ratio (TCR) for a given collateral falls below the SCR,
-    // the protocol triggers the shutdown of the borrow market and permanently disables all borrowing operations except for closing Troves.
-    uint256 public immutable SCR;
-
-    // Minimum collateral ratio for individual troves
-    uint256 public immutable MCR;
-    // Liquidation penalty for troves liquidator
-    uint256 public liquidationPenaltyLiquidator;
-    // Liquidation penalty for troves offset to the SP
-    uint256 public liquidationPenaltySp;
-    // Liquidation penalty for troves dao
-    uint256 public liquidationPenaltyDao;
-    // Address of Liquidation dao penalty recipient address
-    address public liquidationPenaltyDaoRecipient;
 
     error InvalidCCR();
     error InvalidMCR();
@@ -79,24 +62,10 @@ contract AddressesRegistry is
     event USDXTokenAddressChanged(address _usdxTokenAddress);
     event WETHAddressChanged(address _wethAddress);
     event CollateralConfigAddressChanged(address _collateralConfigAddress);
-    event LiquidationPenaltyLiquidatorChanged(uint256 _liquidationPenaltyLiquidator);
-    event LiquidationPenaltySpChanged(uint256 _liquidationPenaltySp);
-    event LiquidationPenaltyDaoChanged(uint256 _liquidationPenaltyDao);
-    event LiquidationPenaltyDaoRecipientChanged(address _liquidationPenaltyDaoRecipient);
 
     constructor(
-        uint256 _ccr,
-        uint256 _mcr,
-        uint256 _scr
     ) {
         _disableInitializers();
-        if (_ccr <= 1e18 || _ccr >= 2e18) revert InvalidCCR();
-        if (_mcr <= 1e18 || _mcr >= 2e18) revert InvalidMCR();
-        if (_scr <= 1e18 || _scr >= 2e18) revert InvalidSCR();
-
-        CCR = _ccr;
-        SCR = _scr;
-        MCR = _mcr;
     }
 
     function initialize(
@@ -133,10 +102,6 @@ contract AddressesRegistry is
         collateralRegistry = _vars.collateralRegistry;
         usdxToken = _vars.usdxToken;
         collateralConfig = _vars.collateralConfig;
-        liquidationPenaltyLiquidator = _vars.liquidationPenaltyLiquidator;
-        liquidationPenaltySp = _vars.liquidationPenaltySp;
-        liquidationPenaltyDao = _vars.liquidationPenaltyDao;
-        liquidationPenaltyDaoRecipient = _vars.liquidationPenaltyDaoRecipient;
 
         emit CollTokenAddressChanged(address(_vars.collToken));
         emit BorrowerOperationsAddressChanged(
@@ -160,9 +125,5 @@ contract AddressesRegistry is
         );
         emit USDXTokenAddressChanged(address(_vars.usdxToken));
         emit CollateralConfigAddressChanged(address(_vars.collateralConfig));
-        emit LiquidationPenaltyLiquidatorChanged(_vars.liquidationPenaltyLiquidator);
-        emit LiquidationPenaltySpChanged(_vars.liquidationPenaltySp);
-        emit LiquidationPenaltyDaoChanged(_vars.liquidationPenaltyDao);
-        emit LiquidationPenaltyDaoRecipientChanged(_vars.liquidationPenaltyDaoRecipient);
     }
 }

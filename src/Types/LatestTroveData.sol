@@ -10,4 +10,5 @@ struct LatestTroveData {
     uint256 accruedInterest;
     uint256 recordedDebt;
     uint256 annualInterestRate;
+    uint256 gasCompensation;
 }

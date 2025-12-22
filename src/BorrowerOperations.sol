@@ -42,16 +42,7 @@ contract BorrowerOperations is
     // Wrapped ETH for liquidation reserve (gas compensation)
     IWETH internal immutable WETH;
 
-    // Critical system collateral ratio. If the system's total collateral ratio (TCR) falls below the CCR, some borrowing operation restrictions are applied
-    uint256 public immutable CCR;
-
-    // Shutdown system collateral ratio. If the system's total collateral ratio (TCR) for a given collateral falls below the SCR,
-    // the protocol triggers the shutdown of the borrow market and permanently disables all borrowing operations except for closing Troves.
-    uint256 public immutable SCR;
     bool public hasBeenShutDown;
-
-    // Minimum collateral ratio for individual troves
-    uint256 public immutable MCR;
 
     /* --- Variable container structs  ---
 
@@ -132,10 +123,6 @@ contract BorrowerOperations is
         collToken = _addressesRegistry.collToken();
 
         WETH = _addressesRegistry.WETH();
-
-        CCR = _addressesRegistry.CCR();
-        SCR = _addressesRegistry.SCR();
-        MCR = _addressesRegistry.MCR();
     }
 
     function initialize(address initialOwner, IAddressesRegistry _addressesRegistry) public initializer {
@@ -231,7 +218,7 @@ contract BorrowerOperations is
     ) internal returns (uint256) {
         _requireIsNotShutDown();
         // Check collateral is not paused or frozen for new operations
-        collateralConfig.requireNotPausedOrFrozen(true);
+        collateralConfig.requireNotPausedOrFrozen(true, false);
 
         LocalVariables_openTrove memory vars;
 
@@ -296,7 +283,7 @@ contract BorrowerOperations is
 
         // Mint the requested _usdxAmount (minus fee) to the borrower and mint the gas comp to the GasPool
         vars.usdxToken.mint(msg.sender, _usdxAmount - borrowFee);
-        WETH.transferFrom(msg.sender, gasPoolAddress, ETH_GAS_COMPENSATION);
+        WETH.transferFrom(msg.sender, gasPoolAddress, collateralConfig.getGasCompensation());
 
         return vars.troveId;
     }
@@ -444,7 +431,9 @@ contract BorrowerOperations is
         // Increase operations: adding collateral or borrowing more debt
         bool isIncrease = _troveChange.collIncrease > 0 ||
             _troveChange.debtIncrease > 0;
-        collateralConfig.requireNotPausedOrFrozen(isIncrease);
+        bool isDecrease = _troveChange.collDecrease > 0 ||
+            _troveChange.debtDecrease > 0;
+        collateralConfig.requireNotPausedOrFrozen(isIncrease, isDecrease);
 
         LocalVariables_adjustTrove memory vars;
         vars.activePool = activePool;
@@ -453,7 +442,7 @@ contract BorrowerOperations is
         vars.price = _requireOraclesLive();
         vars.isBelowCriticalThreshold = _checkBelowCriticalThreshold(
             vars.price,
-            CCR
+            collateralConfig.getCCR()
         );
 
         // --- Checks ---
@@ -481,8 +470,8 @@ contract BorrowerOperations is
 
         // When the adjustment is a debt repayment, check it's a valid amount and that the caller has enough USDX
         if (_troveChange.debtDecrease > 0) {
-            uint256 maxRepayment = vars.trove.entireDebt > troveManager.minDebt()
-                ? vars.trove.entireDebt - troveManager.minDebt()
+            uint256 maxRepayment = vars.trove.entireDebt > collateralConfig.getMinDebt()
+                ? vars.trove.entireDebt - collateralConfig.getMinDebt()
                 : 0;
             if (_troveChange.debtDecrease > maxRepayment) {
                 _troveChange.debtDecrease = maxRepayment;
@@ -582,12 +571,15 @@ contract BorrowerOperations is
         uint256 newTCR = _getNewTCRFromTroveChange(troveChange, price);
         if (!hasBeenShutDown) _requireNewTCRisAboveCCR(newTCR);
 
+        (,,,,,,uint256 gasCompensation) = troveManagerCached.Troves(_troveId);
         troveManagerCached.onCloseTrove(_troveId, troveChange);
 
         activePoolCached.mintAggInterestAndAccountForTroveChange(troveChange);
 
         // Return ETH gas compensation
-        WETH.transferFrom(gasPoolAddress, receiver, ETH_GAS_COMPENSATION);
+        if (gasCompensation > 0) {
+            WETH.transferFrom(gasPoolAddress, receiver, gasCompensation);
+        }
         // Burn the remainder of the Trove's entire debt from the user
         usdxTokenCached.burn(msg.sender, trove.entireDebt);
 
@@ -628,7 +620,7 @@ contract BorrowerOperations is
         // If the trove was zombie, and now it’s not anymore, put it back in the list
         if (
             _checkTroveIsZombie(troveManagerCached, _troveId) &&
-            trove.entireDebt >= troveManager.minDebt()
+            trove.entireDebt >= collateralConfig.getMinDebt()
         ) {
             troveManagerCached.setTroveStatusToActive(_troveId);
             _reInsertIntoSortedTroves(
@@ -673,7 +665,7 @@ contract BorrowerOperations is
 
         // Otherwise, proceed with the TCR check:
         uint256 TCR = LiquityMath._computeCR(totalColl, totalDebt, price);
-        if (TCR >= SCR) revert TCRNotBelowSCR();
+        if (TCR >= collateralConfig.getSCR()) revert TCRNotBelowSCR();
 
         _applyShutdown();
 
@@ -872,7 +864,7 @@ contract BorrowerOperations is
     }
 
     function _requireICRisAboveMCR(uint256 _newICR) internal view {
-        if (_newICR < MCR) {
+        if (_newICR < collateralConfig.getMCR()) {
             revert ICRBelowMCR();
         }
     }
@@ -881,7 +873,7 @@ contract BorrowerOperations is
         uint256 _debtIncrease,
         uint256 _newTCR
     ) internal view {
-        if (_debtIncrease > 0 && _newTCR < CCR) {
+        if (_debtIncrease > 0 && _newTCR < collateralConfig.getCCR()) {
             revert TCRBelowCCR();
         }
     }
@@ -899,13 +891,13 @@ contract BorrowerOperations is
     }
 
     function _requireNewTCRisAboveCCR(uint256 _newTCR) internal view {
-        if (_newTCR < CCR) {
+        if (_newTCR < collateralConfig.getCCR()) {
             revert TCRBelowCCR();
         }
     }
 
     function _requireAtLeastMinDebt(uint256 _debt) internal view {
-        if (_debt < troveManager.minDebt()) {
+        if (_debt < collateralConfig.getMinDebt()) {
             revert DebtBelowMin();
         }
     }

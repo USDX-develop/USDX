@@ -20,6 +20,10 @@ contract CollateralRegistry is
     UUPSUpgradeable,
     ICollateralRegistry
 {
+
+    // error
+    error CollateralExists();
+
     IUSDXToken public immutable usdxToken;
 
     uint256 public totalCollaterals;
@@ -79,6 +83,24 @@ contract CollateralRegistry is
         uint256 usdxSupplyAtStart;
         uint256 unbacked;
         uint256 redeemedAmount;
+    }
+
+    function addCollateral(
+        IERC20Metadata _token,
+        ITroveManager _troveManager
+    ) external onlyOwner {
+        uint256 numCollaterals = totalCollaterals;
+
+        for (uint256 i = 0; i < numCollaterals; i++) {
+            if (tokens[i] == _token) {
+                revert CollateralExists();
+            }
+        }
+
+        tokens.push(_token);
+        troveManagers.push(_troveManager);
+
+        totalCollaterals = numCollaterals + 1;
     }
 
     function redeemCollateral(

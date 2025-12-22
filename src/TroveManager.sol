@@ -43,27 +43,6 @@ contract TroveManager is
     // Wrapped ETH for liquidation reserve (gas compensation)
     IWETH internal WETH;
 
-    // Critical system collateral ratio. If the system's total collateral ratio (TCR) falls below the CCR, some borrowing operation restrictions are applied
-    uint256 public immutable CCR;
-
-    // Minimum collateral ratio for individual troves
-    uint256 internal immutable MCR;
-    // Shutdown system collateral ratio. If the system's total collateral ratio (TCR) for a given collateral falls below the SCR,
-    // the protocol triggers the shutdown of the borrow market and permanently disables all borrowing operations except for closing Troves.
-    uint256 internal immutable SCR;
-
-    // Minimum amount of net USDX debt a trove must have
-    uint256 public immutable minDebt;
-
-    // Liquidation penalty for troves liquidator
-    uint256 public liquidationPenaltyLiquidator;
-    // Liquidation penalty for troves offset to the SP
-    uint256 public liquidationPenaltySp;
-    // Liquidation penalty for troves dao
-    uint256 public liquidationPenaltyDao;
-    // Address of Liquidation dao penalty recipient address
-    address public liquidationPenaltyDaoRecipient;
-
     // --- Data structures ---
 
     // Store the necessary data for a trove
@@ -74,6 +53,7 @@ contract TroveManager is
         Status status;
         uint64 arrayIndex;
         uint64 lastDebtUpdateTime;
+        uint256 gasCompensation;
     }
 
     mapping(uint256 => Trove) public Troves;
@@ -107,7 +87,7 @@ contract TroveManager is
     }
 
     // Array of all active trove addresses - used to compute an approximate hint off-chain, for the sorted list insertion
-    uint256[] internal TroveIds;
+    uint256[] public TroveIds;
 
     uint256 public lastZombieTroveId;
 
@@ -161,6 +141,7 @@ contract TroveManager is
     error NothingToLiquidate();
     error CallerNotBorrowerOperations();
     error CallerNotCollateralRegistry();
+    error CallerNotCollateralConfig();
     error OnlyOneTroveLeft();
     error NotShutDown();
     error ZeroAmount();
@@ -179,25 +160,12 @@ contract TroveManager is
     event CollSurplusPoolAddressChanged(address _collSurplusPoolAddress);
     event SortedTrovesAddressChanged(address _sortedTrovesAddress);
     event CollateralRegistryAddressChanged(address _collateralRegistryAddress);
-    event LiquidationPenaltyLiquidatorChanged(uint256 _liquidationPenaltyLiquidator);
-    event LiquidationPenaltySpChanged(uint256 _liquidationPenaltySp);
-    event LiquidationPenaltyDaoChanged(uint256 _liquidationPenaltyDao);
-    event LiquidationPenaltyDaoRecipientChanged(address _liquidationPenaltyDaoRecipient);
+    event CollateralConfigAddressChanged(address _collateralConfigAddress);
 
     constructor(
-        IAddressesRegistry _addressesRegistry,
-        uint256 _minDebt
+        IAddressesRegistry _addressesRegistry
     ) {
         _disableInitializers();
-
-        // This makes impossible to open a trove with zero withdrawn USDX
-        assert(_minDebt > 0);
-
-        CCR = _addressesRegistry.CCR();
-        MCR = _addressesRegistry.MCR();
-        SCR = _addressesRegistry.SCR();
-
-        minDebt = _minDebt;
     }
 
     function initialize(
@@ -219,12 +187,6 @@ contract TroveManager is
         collateralRegistry = _addressesRegistry.collateralRegistry();
         collateralConfig = _addressesRegistry.collateralConfig();
 
-        liquidationPenaltySp = _addressesRegistry.liquidationPenaltySp();
-        liquidationPenaltyLiquidator = _addressesRegistry
-            .liquidationPenaltyLiquidator();
-        liquidationPenaltyDao = _addressesRegistry.liquidationPenaltyDao();
-        liquidationPenaltyDaoRecipient = _addressesRegistry.liquidationPenaltyDaoRecipient();
-
         emit TroveNFTAddressChanged(address(troveNFT));
         emit BorrowerOperationsAddressChanged(address(borrowerOperations));
         emit StabilityPoolAddressChanged(address(stabilityPool));
@@ -233,10 +195,7 @@ contract TroveManager is
         emit USDXTokenAddressChanged(address(usdxToken));
         emit SortedTrovesAddressChanged(address(sortedTroves));
         emit CollateralRegistryAddressChanged(address(collateralRegistry));
-        emit LiquidationPenaltyLiquidatorChanged(liquidationPenaltyLiquidator);
-        emit LiquidationPenaltySpChanged(liquidationPenaltySp);
-        emit LiquidationPenaltyDaoChanged(liquidationPenaltyDao);
-        emit LiquidationPenaltyDaoRecipientChanged(liquidationPenaltyDaoRecipient);
+        emit CollateralConfigAddressChanged(address(collateralConfig));
     }
 
     function updateByAddressRegistry(
@@ -260,12 +219,6 @@ contract TroveManager is
         collateralRegistry = _addressesRegistry.collateralRegistry();
         collateralConfig = _addressesRegistry.collateralConfig();
 
-        liquidationPenaltySp = _addressesRegistry.liquidationPenaltySp();
-        liquidationPenaltyLiquidator = _addressesRegistry
-            .liquidationPenaltyLiquidator();
-        liquidationPenaltyDao = _addressesRegistry.liquidationPenaltyDao();
-        liquidationPenaltyDaoRecipient = _addressesRegistry.liquidationPenaltyDaoRecipient();
-
         emit TroveNFTAddressChanged(address(troveNFT));
         emit BorrowerOperationsAddressChanged(address(borrowerOperations));
         emit StabilityPoolAddressChanged(address(stabilityPool));
@@ -274,10 +227,7 @@ contract TroveManager is
         emit USDXTokenAddressChanged(address(usdxToken));
         emit SortedTrovesAddressChanged(address(sortedTroves));
         emit CollateralRegistryAddressChanged(address(collateralRegistry));
-        emit LiquidationPenaltyLiquidatorChanged(liquidationPenaltyLiquidator);
-        emit LiquidationPenaltySpChanged(liquidationPenaltySp);
-        emit LiquidationPenaltyDaoChanged(liquidationPenaltyDao);
-        emit LiquidationPenaltyDaoRecipientChanged(liquidationPenaltyDaoRecipient);
+        emit CollateralConfigAddressChanged(address(collateralConfig));
     }
 
     function _authorizeUpgrade(
@@ -399,9 +349,9 @@ contract TroveManager is
             _entireTroveColl,
             _usdxInSPForOffsets,
             _price,
-            liquidationPenaltySp,
-            liquidationPenaltyLiquidator,
-            liquidationPenaltyDao
+            collateralConfig.getLiquidationPenaltySp(),
+            collateralConfig.getLiquidationPenaltyLiquidator(),
+            collateralConfig.getLiquidationPenaltyDao()
         );
     }
 
@@ -472,7 +422,7 @@ contract TroveManager is
 
         if (totals.collToDao > 0) {
             activePoolCached.sendColl(
-                liquidationPenaltyDaoRecipient,
+                collateralConfig.getLiquidationPenaltyDaoRecipient(),
                 totals.collToDao
             );
         }
@@ -528,7 +478,7 @@ contract TroveManager is
 
             uint256 ICR = getCurrentICR(troveId, _price);
 
-            if (ICR < MCR) {
+            if (ICR < collateralConfig.getMCR()) {
                 LiquidationValues memory singleLiquidation;
                 LatestTroveData memory trove;
 
@@ -564,7 +514,7 @@ contract TroveManager is
     ) internal pure {
         // Tally all the values with their respective running totals
         totals.collGasCompensation += _singleLiquidation.collGasCompensation;
-        totals.ETHGasCompensation += ETH_GAS_COMPENSATION;
+        totals.ETHGasCompensation += _trove.gasCompensation;
         troveChange.debtDecrease += _trove.entireDebt;
         troveChange.collDecrease += _trove.entireColl;
         troveChange.appliedRedistUSDXDebtGain += _trove.redistUSDXDebtGain;
@@ -701,7 +651,7 @@ contract TroveManager is
         );
 
         // Make Trove zombie if it's tiny (and it wasn’t already), in order to prevent griefing future (normal, sequential) redemptions
-        if (newDebt < minDebt) {
+        if (newDebt < collateralConfig.getMinDebt()) {
             if (!_singleRedemption.isZombieTrove) {
                 Troves[_singleRedemption.troveId].status = Status.zombie;
                 sortedTroves.remove(_singleRedemption.troveId);
@@ -998,6 +948,8 @@ contract TroveManager is
             trove.redistUSDXDebtGain +
             trove.accruedInterest;
         trove.entireColl = Troves[_troveId].coll + trove.redistCollGain;
+
+        trove.gasCompensation = Troves[_troveId].gasCompensation;
     }
 
     function getLatestTroveData(
@@ -1164,6 +1116,12 @@ contract TroveManager is
         }
     }
 
+    function _requireCallerIsCollateralConfig() internal view {
+        if (msg.sender != address(collateralConfig)) {
+            revert CallerNotCollateralConfig();
+        }
+    }
+
     function _requireMoreThanOneTroveInSystem(
         uint256 TroveIdsArrayLength
     ) internal pure {
@@ -1208,7 +1166,7 @@ contract TroveManager is
         (uint256 price, ) = priceFeed.fetchPrice();
         // It's redeemable if the TCR is above the shutdown threshold, and branch has not been shut down.
         // Use the normal price for the TCR check.
-        bool redeemable = _getTCR(price) >= SCR && shutdownTime == 0;
+        bool redeemable = _getTCR(price) >= collateralConfig.getSCR() && shutdownTime == 0;
 
         return (unbackedPortion, price, redeemable);
     }
@@ -1231,6 +1189,7 @@ contract TroveManager is
         Troves[_troveId].status = Status.active;
         Troves[_troveId].arrayIndex = uint64(TroveIds.length);
         Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
+        Troves[_troveId].gasCompensation = collateralConfig.getGasCompensation();
 
         // Push the trove's id to the Trove list
         TroveIds.push(_troveId);
@@ -1263,6 +1222,11 @@ contract TroveManager is
             _debtChangeFromOperation: int256(_troveChange.debtIncrease),
             _collIncreaseFromRedist: 0,
             _collChangeFromOperation: int256(_troveChange.collIncrease)
+        });
+
+        emit TroveGasCompensation({
+            _troveId: _troveId,
+            _gasCompensation: collateralConfig.getGasCompensation()
         });
     }
 
@@ -1441,57 +1405,46 @@ contract TroveManager is
         });
     }
 
-    // ============ Batch Update Function ============
+    function onAdjustTroveInterestRate(
+        uint256 _troveId,
+        uint256 _newColl,
+        uint256 _newDebt,
+        TroveChange calldata _troveChange
+    ) external {
+        _requireCallerIsCollateralConfig();
 
-    /**
-    * @dev Updates multiple liquidation penalty parameters in a single transaction
-    * @param _newLiquidationPenaltyLiquidator New liquidator penalty percentage
-    * @param _newLiquidationPenaltySp New Stability Pool penalty percentage
-    * @param _newLiquidationPenaltyDao New DAO penalty percentage
-    * @param _newLiquidationPenaltyDaoRecipient New DAO penalty recipient address
-    */
-    function updateLiquidationParameters(
-        uint256 _newLiquidationPenaltyLiquidator,
-        uint256 _newLiquidationPenaltySp,
-        uint256 _newLiquidationPenaltyDao,
-        address _newLiquidationPenaltyDaoRecipient
-    ) external onlyOwner {
-        // Validate all parameters
-        require(
-            _newLiquidationPenaltyLiquidator <= DECIMAL_PRECISION &&
-            _newLiquidationPenaltySp <= DECIMAL_PRECISION &&
-            _newLiquidationPenaltyDao <= DECIMAL_PRECISION,
-            "TroveManager: Penalty cannot exceed 100%"
-        );
-        require(
-            _newLiquidationPenaltyDaoRecipient != address(0),
-            "TroveManager: DAO recipient cannot be zero address"
+        Troves[_troveId].coll = _newColl;
+        Troves[_troveId].debt = _newDebt;
+        Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
+
+        _movePendingTroveRewardsToActivePool(
+            defaultPool, _troveChange.appliedRedistUSDXDebtGain, _troveChange.appliedRedistCollGain
         );
 
-        // Store old values for events
-        uint256 oldPenaltyLiquidator = liquidationPenaltyLiquidator;
-        uint256 oldPenaltySp = liquidationPenaltySp;
-        uint256 oldPenaltyDao = liquidationPenaltyDao;
-        address oldRecipient = liquidationPenaltyDaoRecipient;
+        _updateTroveRewardSnapshots(_troveId);
 
-        // Update values
-        liquidationPenaltyLiquidator = _newLiquidationPenaltyLiquidator;
-        liquidationPenaltySp = _newLiquidationPenaltySp;
-        liquidationPenaltyDao = _newLiquidationPenaltyDao;
-        liquidationPenaltyDaoRecipient = _newLiquidationPenaltyDaoRecipient;
+        emit TroveUpdated({
+            _troveId: _troveId,
+            _debt: _newDebt,
+            _coll: _newColl,
+            _stake: Troves[_troveId].stake,
+            _annualInterestRate: collateralConfig.getAnnualInterestRate(),
+            _snapshotOfTotalCollRedist: L_coll,
+            _snapshotOfTotalDebtRedist: L_usdxDebt
+        });
 
-        // Emit events
-        if (oldPenaltyLiquidator != _newLiquidationPenaltyLiquidator) {
-            emit LiquidationPenaltyLiquidatorChanged(_newLiquidationPenaltyLiquidator);
-        }
-        if (oldPenaltySp != _newLiquidationPenaltySp) {
-            emit LiquidationPenaltySpChanged(_newLiquidationPenaltySp);
-        }
-        if (oldPenaltyDao != _newLiquidationPenaltyDao) {
-            emit LiquidationPenaltyDaoChanged(_newLiquidationPenaltyDao);
-        }
-        if (oldRecipient != _newLiquidationPenaltyDaoRecipient) {
-            emit LiquidationPenaltyDaoRecipientChanged(_newLiquidationPenaltyDaoRecipient);
-        }
+        emit TroveOperation({
+            _troveId: _troveId,
+            _operation: Operation.adjustTroveInterestRate,
+            _annualInterestRate: collateralConfig.getAnnualInterestRate(),
+            _debtIncreaseFromRedist: _troveChange.appliedRedistUSDXDebtGain,
+            _debtChangeFromOperation: 0,
+            _collIncreaseFromRedist: _troveChange.appliedRedistCollGain,
+            _collChangeFromOperation: 0
+        });
+    }
+
+    function getTroveIds() public view returns (uint256[] memory) {
+        return TroveIds;
     }
 }

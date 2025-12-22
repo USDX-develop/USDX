@@ -9,7 +9,8 @@ interface ITroveEvents {
         adjustTrove,
         applyPendingDebt,
         liquidate,
-        redeemCollateral
+        redeemCollateral,
+        adjustTroveInterestRate
     }
 
     event Liquidation(
@@ -56,6 +57,8 @@ interface ITroveEvents {
         uint256 _collIncreaseFromRedist,
         int256 _collChangeFromOperation
     );
+
+    event TroveGasCompensation(uint256 indexed _troveId, uint256 _gasCompensation);
 
     event RedemptionFeePaidToTrove(uint256 indexed _troveId, uint256 _ETHFee);
 }

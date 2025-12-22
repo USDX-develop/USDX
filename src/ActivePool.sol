@@ -237,7 +237,7 @@ contract ActivePool is
     function mintAggInterestAndAccountForTroveChange(
         TroveChange calldata _troveChange
     ) external {
-        _requireCallerIsBOorTroveM();
+        _requireCallerIsBOorSPorCP();
 
         // Do the arithmetic in 2 steps here to avoid underflow from the decrease
         uint256 newAggRecordedDebt = aggRecordedDebt; // 1 SLOAD
@@ -249,7 +249,7 @@ contract ActivePool is
     }
 
     function mintAggInterest() external override {
-        _requireCallerIsBOorSP();
+        _requireCallerIsBOorSPorCP();
         aggRecordedDebt += _mintAggInterest();
     }
 
@@ -308,6 +308,15 @@ contract ActivePool is
             msg.sender == borrowerOperationsAddress ||
                 msg.sender == address(stabilityPool),
             "ActivePool: Caller is not BorrowerOperations nor StabilityPool"
+        );
+    }
+
+    function _requireCallerIsBOorSPorCP() internal view {
+        require(
+            msg.sender == borrowerOperationsAddress ||
+            msg.sender == address(stabilityPool) ||
+            msg.sender == address(collateralConfig),
+            "ActivePool: Caller is not BorrowerOperations or StabilityPool or CollateralConfig"
         );
     }
 

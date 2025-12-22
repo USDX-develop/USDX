@@ -42,7 +42,8 @@ interface ITroveManager is ILiquityBase {
             uint256 stake,
             Status status,
             uint64 arrayIndex,
-            uint64 lastDebtUpdateTime
+            uint64 lastDebtUpdateTime,
+            uint256 gasCompensation
         );
 
     function rewardSnapshots(
@@ -98,7 +99,7 @@ interface ITroveManager is ILiquityBase {
 
     function getTroveStatus(uint256 _troveId) external view returns (Status);
 
-    function minDebt() external view returns (uint256);
+    function getTroveIds() external view returns (uint256[] memory);
 
     // -- permissioned functions called by BorrowerOperations
 
@@ -131,4 +132,11 @@ interface ITroveManager is ILiquityBase {
     ) external;
 
     // -- end of permissioned functions --
+
+    function onAdjustTroveInterestRate(
+        uint256 _troveId,
+        uint256 _newColl,
+        uint256 _newDebt,
+        TroveChange calldata _troveChange
+    ) external;
 }

@@ -96,6 +96,7 @@ contract MultiTroveGetter is IMultiTroveGetter {
             ,
             ,
             _out.lastDebtUpdateTime
+            ,
         ) = _troveManager.Troves(_id);
 
         (_out.snapshotETH, _out.snapshotUSDXDebt) = _troveManager
