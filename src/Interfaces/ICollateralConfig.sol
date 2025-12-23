@@ -96,54 +96,7 @@ interface ICollateralConfig {
         uint256 _gasCompensation
     ) external;
 
-    /**
-     * @notice Freeze/unfreeze collateral (prevents new operations)
-     */
-    function setFrozen(bool _frozen) external;
-
-    /**
-     * @notice Pause/unpause collateral (prevents all operations except close)
-     */
-    function setPaused(bool _paused) external;
-
     function setGlobalConfig(address _globalConfig) external;
-
-    /**
-     * @notice Update collateral annual interest rate
-     * @param _rate Annual interest rate in 18 decimals (e.g., 5e16 = 5%)
-     */
-    function setAnnualInterestRate(uint256 _rate, address _troveManager) external;
-
-    /**
-     * @notice Update treasury address
-     */
-    function setTreasury(address _treasury) external;
-
-    /**
-     * @notice Update borrow fee ratio
-     * @param _ratio Borrow fee ratio in 18 decimals (e.g., 5e15 = 0.5%)
-     */
-    function setBorrowRatio(uint256 _ratio) external;
-
-    function setMCR(uint256 _MCR) external;
-
-    function setCCR(uint256 _CCR) external;
-
-    function setSCR(uint256 _SCR) external;
-
-    function setLCR(uint256 _LCR) external;
-
-    function setMinDebt(uint256 _minDebt) external;
-
-    function setLiquidationPenaltyLiquidator(uint256 _liquidationPenaltyLiquidator) external;
-
-    function setLiquidationPenaltySp(uint256 _liquidationPenaltySp) external;
-
-    function setLiquidationPenaltyDao(uint256 _liquidationPenaltyDao) external;
-
-    function setLiquidationPenaltyDaoRecipient(address _liquidationPenaltyDaoRecipient) external;
-
-    function setGasCompensation(uint256 _gasCompensation) external;
 
     // --- Getter Functions ---
 
