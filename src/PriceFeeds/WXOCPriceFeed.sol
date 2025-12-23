@@ -153,4 +153,9 @@ contract WXOCPriceFeed is Initializable, OwnableUpgradeable, UUPSUpgradeable, Ma
         if (msg.sender != priceFeeder) revert FeederNotAuthorized();
         minUpdateInterval = _newInterval;
     }
+
+    function updateStalenessThreshold(uint256 _newThreshold) external {
+        if (msg.sender != priceFeeder) revert FeederNotAuthorized();
+        stalenessThreshold = _newThreshold;
+    }
 }

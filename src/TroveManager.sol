@@ -24,7 +24,7 @@ contract TroveManager is
     Initializable,
     OwnableUpgradeable,
     UUPSUpgradeable,
-USDXBase,
+    USDXBase,
     ITroveManager,
     ITroveEvents
 {
