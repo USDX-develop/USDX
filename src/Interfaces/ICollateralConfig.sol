@@ -98,6 +98,11 @@ interface ICollateralConfig {
 
     function setGlobalConfig(address _globalConfig) external;
 
+    function setAnnualInterestRate(
+        uint256 _rate,
+        address _troveManager
+    ) external;
+
     // --- Getter Functions ---
 
     function getConfig() external view returns (Config memory);
