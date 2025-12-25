@@ -95,7 +95,7 @@ contract MultiTroveGetter is IMultiTroveGetter {
             _out.stake, // status // arrayIndex
             ,
             ,
-            _out.lastDebtUpdateTime
+            _out.lastDebtUpdateTime,
             ,
         ) = _troveManager.Troves(_id);
 

@@ -164,25 +164,20 @@ contract CollateralConfig is
         globalConfig = IGlobalConfig(_globalConfig);
     }
 
-    function setAnnualInterestRate(
-        uint256 _rate,
-        address _troveManager
-    ) external override onlyOwner {
+    function setAnnualInterestRate(uint256 _rate) external override onlyOwner {
         _requireValidInterestRate(_rate);
 
         uint256 oldRate = config.annualInterestRate;
         if (oldRate == _rate) return;
-
-        ITroveManager troveManagerCached = ITroveManager(_troveManager);
+        
+        // Mint aggregate interest at the old rate before changing
+        // This ensures the pending interest calculated with old rate is properly minted
+        // and the cumulative factor is updated internally
+        activePool.mintAggInterest();
+        
+        // Update the interest rate
         config.annualInterestRate = _rate;
         emit AnnualInterestRateUpdated(_rate);
-
-        // This ensures historical interest is calculated at the old rate
-        uint256[] memory troveIds = troveManagerCached.getTroveIds();
-        for (uint256 i = 0; i < troveIds.length; i++) {
-            uint256 troveId = troveIds[i];
-            _adjustTroveInterestRate(troveIds[i], _rate, troveManagerCached);
-        }
     }
 
     // --- Getter Functions (View) ---
@@ -340,31 +335,5 @@ contract CollateralConfig is
         if (status != ITroveManager.Status.active) {
             revert TroveNotActive();
         }
-    }
-
-    function _adjustTroveInterestRate(
-        uint256 _troveId,
-        uint256 _newAnnualInterestRate,
-        ITroveManager _troveManager
-    ) internal {
-        requireNotPausedOrFrozen(false, false);
-
-        ITroveManager troveManagerCached = _troveManager;
-
-        _requireTroveIsActive(troveManagerCached, _troveId);
-
-        LatestTroveData memory trove = troveManagerCached.getLatestTroveData(_troveId);
-
-        uint256 newDebt = trove.entireDebt;
-
-        TroveChange memory troveChange;
-        troveChange.appliedRedistUSDXDebtGain = trove.redistUSDXDebtGain;
-        troveChange.appliedRedistCollGain = trove.redistCollGain;
-
-        activePool.mintAggInterestAndAccountForTroveChange(troveChange);
-
-        troveManagerCached.onAdjustTroveInterestRate(
-            _troveId, trove.entireColl, newDebt, troveChange
-        );
     }
 }

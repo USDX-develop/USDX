@@ -54,6 +54,7 @@ contract TroveManager is
         uint64 arrayIndex;
         uint64 lastDebtUpdateTime;
         uint256 gasCompensation;
+        uint256 interestFactorSnapshot;  // Cumulative interest factor at last update
     }
 
     mapping(uint256 => Trove) public Troves;
@@ -577,6 +578,7 @@ contract TroveManager is
         Troves[_singleRedemption.troveId].lastDebtUpdateTime = uint64(
             block.timestamp
         );
+        Troves[_singleRedemption.troveId].interestFactorSnapshot = activePool.cumulativeInterestFactor();
 
         _singleRedemption.newStake = _updateStakeAndTotalStakes(
             _singleRedemption.troveId,
@@ -935,13 +937,17 @@ contract TroveManager is
         trove.recordedDebt = Troves[_troveId].debt;
         trove.annualInterestRate = collateralConfig.getAnnualInterestRate();
 
-        uint256 period = _getInterestPeriod(
-            Troves[_troveId].lastDebtUpdateTime
-        );
-        trove.accruedInterest = _calcInterest(
-            trove.recordedDebt * trove.annualInterestRate,
-            period
-        );
+        // Calculate accrued interest using cumulative factor method
+        uint256 snapshotFactor = Troves[_troveId].interestFactorSnapshot;
+        if (snapshotFactor > 0 && trove.recordedDebt > 0) {
+            uint256 currentFactor = activePool.getCurrentCumulativeFactor();
+            // interest = debt * (currentFactor / snapshotFactor - 1)
+            // Rearranged to: interest = debt * (currentFactor - snapshotFactor) / snapshotFactor
+            uint256 factorDiff = currentFactor - snapshotFactor;
+            trove.accruedInterest = (trove.recordedDebt * factorDiff) / snapshotFactor;
+        } else {
+            trove.accruedInterest = 0;
+        }
 
         trove.entireDebt =
             trove.recordedDebt +
@@ -1187,6 +1193,7 @@ contract TroveManager is
         Troves[_troveId].arrayIndex = uint64(TroveIds.length);
         Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
         Troves[_troveId].gasCompensation = collateralConfig.getGasCompensation();
+        Troves[_troveId].interestFactorSnapshot = activePool.cumulativeInterestFactor();
 
         // Push the trove's id to the Trove list
         TroveIds.push(_troveId);
@@ -1246,6 +1253,7 @@ contract TroveManager is
         Troves[_troveId].coll = _newColl;
         Troves[_troveId].debt = _newDebt;
         Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
+        Troves[_troveId].interestFactorSnapshot = activePool.cumulativeInterestFactor();
 
         _movePendingTroveRewardsToActivePool(
             defaultPool,
@@ -1286,6 +1294,7 @@ contract TroveManager is
         TroveChange memory _troveChange // decrease vars: entire, with interest and redistribution
     ) external override {
         _requireCallerIsBorrowerOperations();
+        
         _closeTrove(_troveId, _troveChange, Status.closedByOwner);
         _movePendingTroveRewardsToActivePool(
             defaultPool,
@@ -1368,6 +1377,7 @@ contract TroveManager is
 
         Troves[_troveId].debt = _newTroveDebt;
         Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
+        Troves[_troveId].interestFactorSnapshot = activePool.cumulativeInterestFactor();
 
         _movePendingTroveRewardsToActivePool(
             defaultPool,
@@ -1399,45 +1409,6 @@ contract TroveManager is
             _collIncreaseFromRedist: _troveChange.appliedRedistCollGain,
             _collChangeFromOperation: int256(_troveChange.collIncrease) -
                 int256(_troveChange.collDecrease)
-        });
-    }
-
-    function onAdjustTroveInterestRate(
-        uint256 _troveId,
-        uint256 _newColl,
-        uint256 _newDebt,
-        TroveChange calldata _troveChange
-    ) external {
-        _requireCallerIsCollateralConfig();
-
-        Troves[_troveId].coll = _newColl;
-        Troves[_troveId].debt = _newDebt;
-        Troves[_troveId].lastDebtUpdateTime = uint64(block.timestamp);
-
-        _movePendingTroveRewardsToActivePool(
-            defaultPool, _troveChange.appliedRedistUSDXDebtGain, _troveChange.appliedRedistCollGain
-        );
-
-        _updateTroveRewardSnapshots(_troveId);
-
-        emit TroveUpdated({
-            _troveId: _troveId,
-            _debt: _newDebt,
-            _coll: _newColl,
-            _stake: Troves[_troveId].stake,
-            _annualInterestRate: collateralConfig.getAnnualInterestRate(),
-            _snapshotOfTotalCollRedist: L_coll,
-            _snapshotOfTotalDebtRedist: L_usdxDebt
-        });
-
-        emit TroveOperation({
-            _troveId: _troveId,
-            _operation: Operation.adjustTroveInterestRate,
-            _annualInterestRate: collateralConfig.getAnnualInterestRate(),
-            _debtIncreaseFromRedist: _troveChange.appliedRedistUSDXDebtGain,
-            _debtChangeFromOperation: 0,
-            _collIncreaseFromRedist: _troveChange.appliedRedistCollGain,
-            _collChangeFromOperation: 0
         });
     }
 

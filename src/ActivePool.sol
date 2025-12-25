@@ -56,6 +56,12 @@ contract ActivePool is
     // Timestamp at which branch was shut down. 0 if not shut down.
     uint256 public shutdownTime;
 
+    // --- Cumulative Interest Factor ---
+    // Global cumulative interest factor, initialized to DECIMAL_PRECISION (1e18)
+    uint256 public cumulativeInterestFactor;
+    // Last time the cumulative interest factor was updated
+    uint256 public lastFactorUpdateTime;
+
     // --- Events ---
 
     event CollTokenAddressChanged(address _newCollTokenAddress);
@@ -93,6 +99,10 @@ contract ActivePool is
     function initialize(address initialOwner) public initializer {
         __Ownable_init();
         transferOwnership(initialOwner);
+        
+        // Initialize cumulative interest factor
+        cumulativeInterestFactor = DECIMAL_PRECISION;
+        lastFactorUpdateTime = block.timestamp;
     }
 
     function updateByAddressRegistry(
@@ -251,6 +261,9 @@ contract ActivePool is
     }
 
     function _mintAggInterest() internal returns (uint256 mintedAmount) {
+        // Update cumulative interest factor first
+        _updateCumulativeInterestFactor();
+        
         mintedAmount = calcPendingAggInterest();
 
         // Mint part of the USDX interest to the SP and part to the router for LPs.
@@ -268,6 +281,56 @@ contract ActivePool is
         }
 
         lastAggUpdateTime = block.timestamp;
+    }
+
+    // --- Cumulative Interest Factor functions ---
+
+    /**
+     * @notice Updates the global cumulative interest factor based on elapsed time
+     * @dev Called internally before minting aggregate interest
+     */
+    function _updateCumulativeInterestFactor() internal {
+        uint256 timePeriod = _getInterestPeriod(lastFactorUpdateTime);
+        if (timePeriod == 0) return;
+
+        uint256 rate = collateralConfig.getAnnualInterestRate();
+        
+        // factor = factor * (1 + rate * time / ONE_YEAR)
+        // Using DECIMAL_PRECISION for precision
+        uint256 interestMultiplier = DECIMAL_PRECISION + (rate * timePeriod) / ONE_YEAR;
+        cumulativeInterestFactor = (cumulativeInterestFactor * interestMultiplier) / DECIMAL_PRECISION;
+        
+        lastFactorUpdateTime = block.timestamp;
+    }
+
+    /**
+     * @notice Returns the current cumulative factor including any unupdated portion
+     * @dev Used for view functions to calculate interest without state changes
+     * @return The current cumulative interest factor
+     */
+    function getCurrentCumulativeFactor() public view returns (uint256) {
+        uint256 timePeriod = _getInterestPeriod(lastFactorUpdateTime);
+        if (timePeriod == 0) return cumulativeInterestFactor;
+
+        uint256 rate = collateralConfig.getAnnualInterestRate();
+        uint256 interestMultiplier = DECIMAL_PRECISION + (rate * timePeriod) / ONE_YEAR;
+        
+        return (cumulativeInterestFactor * interestMultiplier) / DECIMAL_PRECISION;
+    }
+
+    /**
+     * @notice Returns the interest period based on shutdown status
+     * @param _lastUpdateTime The last update timestamp
+     * @return The interest period in seconds
+     */
+    function _getInterestPeriod(uint256 _lastUpdateTime) internal view returns (uint256) {
+        if (shutdownTime == 0) {
+            return block.timestamp - _lastUpdateTime;
+        } else if (_lastUpdateTime < shutdownTime) {
+            return shutdownTime - _lastUpdateTime;
+        } else {
+            return 0;
+        }
     }
 
     // --- Shutdown ---

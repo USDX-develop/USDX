@@ -43,7 +43,8 @@ interface ITroveManager is IUSDXBase {
             Status status,
             uint64 arrayIndex,
             uint64 lastDebtUpdateTime,
-            uint256 gasCompensation
+            uint256 gasCompensation,
+            uint256 interestFactorSnapshot
         );
 
     function rewardSnapshots(
@@ -132,11 +133,4 @@ interface ITroveManager is IUSDXBase {
     ) external;
 
     // -- end of permissioned functions --
-
-    function onAdjustTroveInterestRate(
-        uint256 _troveId,
-        uint256 _newColl,
-        uint256 _newDebt,
-        TroveChange calldata _troveChange
-    ) external;
 }
