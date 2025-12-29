@@ -229,10 +229,8 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
 
         borrowerOperations.closeTrove(_troveId);
 
-        ITroveManager troveManagerCached = troveManager;
-        (,,,,,,uint256 gasCompensation,) = troveManagerCached.Troves(_troveId);
-        WETH.withdraw(trove.entireColl + gasCompensation);
-        (bool success,) = receiver.call{value: trove.entireColl + gasCompensation}("");
+        WETH.withdraw(trove.entireColl + trove.gasCompensation);
+        (bool success,) = receiver.call{value: trove.entireColl + trove.gasCompensation}("");
         require(success, "WZ: Sending ETH failed");
     }
 
