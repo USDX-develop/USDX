@@ -199,7 +199,15 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
     ) internal {
         // Send USDX
         if (_isDebtIncrease) {
-            usdxToken.transfer(_receiver, _usdxChange);
+            // Calculate borrow fee and mint tokens
+            uint256 borrowRatio = collateralConfig.getBorrowRatio();
+            uint256 borrowFee = 0;
+            address treasury = collateralConfig.getTreasury();
+            if (borrowRatio > 0 && treasury != address(0)) {
+                borrowFee = (_usdxChange * borrowRatio) / DECIMAL_PRECISION;
+            }
+
+            usdxToken.transfer(_receiver, _usdxChange - borrowFee);
         }
 
         // return USDX leftovers to user (trying to repay more than possible)
