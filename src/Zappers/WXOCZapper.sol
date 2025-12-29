@@ -16,14 +16,14 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
     {
         _disableInitializers();
         require(address(WETH) == address(_addressesRegistry.collToken()), "WZ: Wrong coll branch");
-        // Approve coll to BorrowerOperations
-        WETH.approve(address(borrowerOperations), type(uint256).max);
     }
 
     function initialize(address initialOwner, IAddressesRegistry _addressesRegistry) public initializer {
         __Ownable_init();
         __BaseZapper_init(_addressesRegistry);
         transferOwnership(initialOwner);
+        // Approve coll to BorrowerOperations
+        WETH.approve(address(borrowerOperations), type(uint256).max);
     }
 
     function _authorizeUpgrade(
@@ -31,7 +31,7 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
     ) internal override onlyOwner {}
 
     function openTroveWithRawETH(OpenTroveParams calldata _params) external payable returns (uint256) {
-        require(msg.value > ETH_GAS_COMPENSATION, "WZ: Insufficient ETH");
+        require(msg.value > collateralConfig.getGasCompensation(), "WZ: Insufficient ETH");
 
         // Convert ETH to WETH
         WETH.deposit{value: msg.value}();
@@ -42,7 +42,7 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
         troveId = borrowerOperations.openTrove(
             _params.owner,
             index,
-            msg.value - ETH_GAS_COMPENSATION,
+            msg.value - collateralConfig.getGasCompensation(),
             _params.usdxAmount,
             _params.upperHint,
             _params.lowerHint,
@@ -53,7 +53,15 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
             address(this) // receiver for remove manager
         );
 
-        usdxToken.transfer(msg.sender, _params.usdxAmount);
+        // Calculate borrow fee and mint tokens
+        uint256 borrowRatio = collateralConfig.getBorrowRatio();
+        uint256 borrowFee = 0;
+        address treasury = collateralConfig.getTreasury();
+        if (borrowRatio > 0 && treasury != address(0)) {
+            borrowFee = (_params.usdxAmount * borrowRatio) / DECIMAL_PRECISION;
+        }
+
+        usdxToken.transfer(msg.sender, _params.usdxAmount - borrowFee);
 
         // Set add/remove managers
         _setAddManager(troveId, _params.addManager);
@@ -221,8 +229,10 @@ contract WXOCZapper is Initializable, OwnableUpgradeable, UUPSUpgradeable, BaseZ
 
         borrowerOperations.closeTrove(_troveId);
 
-        WETH.withdraw(trove.entireColl + ETH_GAS_COMPENSATION);
-        (bool success,) = receiver.call{value: trove.entireColl + ETH_GAS_COMPENSATION}("");
+        ITroveManager troveManagerCached = troveManager;
+        (,,,,,,uint256 gasCompensation,) = troveManagerCached.Troves(_troveId);
+        WETH.withdraw(trove.entireColl + gasCompensation);
+        (bool success,) = receiver.call{value: trove.entireColl + gasCompensation}("");
         require(success, "WZ: Sending ETH failed");
     }
 

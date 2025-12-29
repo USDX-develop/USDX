@@ -21,6 +21,7 @@ abstract contract BaseZapper is
     ITroveManager public immutable troveManager;
     IWETH public immutable WETH;
     IUSDXToken public immutable usdxToken;
+    ICollateralConfig public immutable collateralConfig;
 
     constructor(IAddressesRegistry _addressesRegistry)
     {
@@ -28,6 +29,7 @@ abstract contract BaseZapper is
         troveManager = _addressesRegistry.troveManager();
         usdxToken = _addressesRegistry.usdxToken();
         WETH = _addressesRegistry.WETH();
+        collateralConfig = _addressesRegistry.collateralConfig();
     }
 
     function __BaseZapper_init(IAddressesRegistry _addressesRegistry) public initializer {
