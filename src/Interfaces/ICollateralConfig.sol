@@ -98,10 +98,7 @@ interface ICollateralConfig {
 
     function setGlobalConfig(address _globalConfig) external;
 
-    function setAnnualInterestRate(
-        uint256 _rate,
-        address _troveManager
-    ) external;
+    function setAnnualInterestRate(uint256 _rate) external;
 
     // --- Getter Functions ---
 

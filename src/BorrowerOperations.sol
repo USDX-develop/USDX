@@ -571,7 +571,7 @@ USDXBase,
         uint256 newTCR = _getNewTCRFromTroveChange(troveChange, price);
         if (!hasBeenShutDown) _requireNewTCRisAboveCCR(newTCR);
 
-        (,,,,,,uint256 gasCompensation) = troveManagerCached.Troves(_troveId);
+        (,,,,,,uint256 gasCompensation,) = troveManagerCached.Troves(_troveId);
         troveManagerCached.onCloseTrove(_troveId, troveChange);
 
         activePoolCached.mintAggInterestAndAccountForTroveChange(troveChange);

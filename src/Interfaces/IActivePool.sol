@@ -53,4 +53,12 @@ interface IActivePool {
     function receiveColl(uint256 _amount) external;
 
     function accountForReceivedColl(uint256 _amount) external;
+
+    // --- Cumulative Interest Factor functions ---
+
+    function cumulativeInterestFactor() external view returns (uint256);
+
+    function lastFactorUpdateTime() external view returns (uint256);
+
+    function getCurrentCumulativeFactor() external view returns (uint256);
 }
