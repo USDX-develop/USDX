@@ -120,7 +120,6 @@ contract CollateralConfig is
         address _liquidationPenaltyDaoRecipient,
         uint256 _gasCompensation
     ) external override onlyOwner {
-        _requireValidAddress(_treasury);
         _requireValidInterestRate(_annualInterestRate);
         _requireValidBorrowRatio(_borrowRatio);
 
@@ -169,12 +168,12 @@ contract CollateralConfig is
 
         uint256 oldRate = config.annualInterestRate;
         if (oldRate == _rate) return;
-        
+
         // Mint aggregate interest at the old rate before changing
         // This ensures the pending interest calculated with old rate is properly minted
         // and the cumulative factor is updated internally
         activePool.mintAggInterest();
-        
+
         // Update the interest rate
         config.annualInterestRate = _rate;
         emit AnnualInterestRateUpdated(_rate);
@@ -325,7 +324,7 @@ contract CollateralConfig is
 
     function _requireValidBorrowRatio(uint256 _ratio) internal pure {
         // Max 10% borrow fee (1e17 = 10%)
-        if (_ratio > MAX_BORROW_RATIO) {
+        if (_ratio > MAX_BORROW_RATIO && _ratio != type(uint256).max) {
             revert InvalidBorrowRatio();
         }
     }

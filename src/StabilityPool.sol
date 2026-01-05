@@ -120,7 +120,7 @@ contract StabilityPool is
     Initializable,
     OwnableUpgradeable,
     UUPSUpgradeable,
-USDXBase,
+    USDXBase,
     IStabilityPool,
     IStabilityPoolEvents
 {
