@@ -9,13 +9,11 @@ library LiquidationLib {
 
     // Return the amount of Coll to be drawn from a trove's collateral and sent as gas compensation.
     function _getCollGasCompensation(
-        uint256 _coll,
-        uint256 liquidationPenaltyLiquidator
+        uint256 _debtToLiquidate,
+        uint256 liquidationPenaltyLiquidator,
+        uint256 _price
     ) public pure returns (uint256) {
-        return USDXMath._min(
-            _coll * liquidationPenaltyLiquidator / DECIMAL_PRECISION,
-            COLL_GAS_COMPENSATION_CAP
-        );
+        return  (_debtToLiquidate * liquidationPenaltyLiquidator) / _price;
     }
 
     function _getOffsetAndRedistributionVals(
@@ -56,8 +54,9 @@ library LiquidationLib {
                 _entireTroveDebt;
 
             collGasCompensation = _getCollGasCompensation(
-                collSPPortion,
-                liquidationPenaltyLiquidator
+                debtToOffset,
+                liquidationPenaltyLiquidator,
+                _price
             );
 
             (collToSendToSP, collSurplus) = _getCollPenaltyAndSurplus(
@@ -66,6 +65,15 @@ library LiquidationLib {
                 liquidationPenaltySp,
                 _price
             );
+
+            if (collSurplus >= collGasCompensation) {
+                collSurplus -= collGasCompensation;
+            } else {
+                uint256 remainder = collGasCompensation - collSurplus;
+                collSurplus = 0;
+
+                collToSendToSP -= remainder;
+            }
         }
 
         // Redistribution
