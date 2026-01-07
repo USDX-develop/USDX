@@ -244,7 +244,7 @@ contract ActivePool is
     function mintAggInterestAndAccountForTroveChange(
         TroveChange calldata _troveChange
     ) external {
-        _requireCallerIsBOorSPorCP();
+        _requireCallerIsBOorTroveM();
 
         // Do the arithmetic in 2 steps here to avoid underflow from the decrease
         uint256 newAggRecordedDebt = aggRecordedDebt; // 1 SLOAD
