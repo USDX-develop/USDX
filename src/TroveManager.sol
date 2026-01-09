@@ -294,7 +294,7 @@ contract TroveManager is
 
         // Difference between liquidation penalty and liquidation threshold
         if (singleLiquidation.collSurplus > 0) {
-            collSurplusPool.accountSurplus(
+            IActivePool(activePool).sendColl(
                 owner,
                 singleLiquidation.collSurplus
             );
@@ -414,12 +414,6 @@ contract TroveManager is
             totals.debtToRedistribute,
             totals.collToRedistribute
         );
-        if (totals.collSurplus > 0) {
-            activePoolCached.sendColl(
-                address(collSurplusPool),
-                totals.collSurplus
-            );
-        }
 
         if (totals.collToDao > 0) {
             activePoolCached.sendColl(
