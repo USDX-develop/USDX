@@ -44,7 +44,8 @@ interface ITroveEvents {
         uint256 _stake,
         uint256 _annualInterestRate,
         uint256 _snapshotOfTotalCollRedist,
-        uint256 _snapshotOfTotalDebtRedist
+        uint256 _snapshotOfTotalDebtRedist,
+        uint256 _interestFactorSnapshot
     );
 
     // Details of an operation that modifies a Trove
@@ -55,7 +56,8 @@ interface ITroveEvents {
         uint256 _debtIncreaseFromRedist,
         int256 _debtChangeFromOperation,
         uint256 _collIncreaseFromRedist,
-        int256 _collChangeFromOperation
+        int256 _collChangeFromOperation,
+        uint256 _interestFactorSnapshot
     );
 
     event TroveGasCompensation(uint256 indexed _troveId, uint256 _gasCompensation);

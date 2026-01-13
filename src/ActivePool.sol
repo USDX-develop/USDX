@@ -73,6 +73,7 @@ contract ActivePool is
     event StabilityPoolAddressChanged(address _newStabilityPoolAddress);
     event ActivePoolUSDXDebtUpdated(uint256 _recordedDebtSum);
     event ActivePoolCollBalanceUpdated(uint256 _collBalance);
+    event CumulativeInterestFactorUpdated(uint256 _cumulativeInterestFactor);
 
     constructor(IAddressesRegistry _addressesRegistry) {
         _disableInitializers();
@@ -103,6 +104,8 @@ contract ActivePool is
         // Initialize cumulative interest factor
         cumulativeInterestFactor = DECIMAL_PRECISION;
         lastFactorUpdateTime = block.timestamp;
+
+        emit CumulativeInterestFactorUpdated(cumulativeInterestFactor);
     }
 
     function updateByAddressRegistry(
@@ -301,6 +304,8 @@ contract ActivePool is
         cumulativeInterestFactor = (cumulativeInterestFactor * interestMultiplier) / DECIMAL_PRECISION;
         
         lastFactorUpdateTime = block.timestamp;
+
+        emit CumulativeInterestFactorUpdated(cumulativeInterestFactor);
     }
 
     /**

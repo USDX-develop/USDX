@@ -46,7 +46,7 @@ contract TroveNFT is
                 "USDX - ",
                 _addressesRegistry.collToken().name()
             ),
-            string.concat("USDX_", _addressesRegistry.collToken().symbol())
+            string.concat("USDX-", _addressesRegistry.collToken().symbol())
         );
         __ERC721Enumerable_init();
         __Ownable_init();

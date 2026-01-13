@@ -310,7 +310,8 @@ contract TroveManager is
             _stake: 0,
             _annualInterestRate: 0,
             _snapshotOfTotalCollRedist: 0,
-            _snapshotOfTotalDebtRedist: 0
+            _snapshotOfTotalDebtRedist: 0,
+            _interestFactorSnapshot: 0
         });
 
         emit TroveOperation({
@@ -320,7 +321,8 @@ contract TroveManager is
             _debtIncreaseFromRedist: trove.redistUSDXDebtGain,
             _debtChangeFromOperation: -int256(trove.entireDebt),
             _collIncreaseFromRedist: trove.redistCollGain,
-            _collChangeFromOperation: -int256(trove.entireColl)
+            _collChangeFromOperation: -int256(trove.entireColl),
+            _interestFactorSnapshot: 0
         });
     }
 
@@ -592,7 +594,8 @@ contract TroveManager is
             _stake: _singleRedemption.newStake,
             _annualInterestRate: _singleRedemption.trove.annualInterestRate,
             _snapshotOfTotalCollRedist: L_coll,
-            _snapshotOfTotalDebtRedist: L_usdxDebt
+            _snapshotOfTotalDebtRedist: L_usdxDebt,
+            _interestFactorSnapshot: Troves[_singleRedemption.troveId].interestFactorSnapshot
         });
 
         emit TroveOperation({
@@ -602,7 +605,8 @@ contract TroveManager is
             _debtIncreaseFromRedist: _singleRedemption.trove.redistUSDXDebtGain,
             _debtChangeFromOperation: -int256(_singleRedemption.usdxLot),
             _collIncreaseFromRedist: _singleRedemption.trove.redistCollGain,
-            _collChangeFromOperation: -int256(_singleRedemption.collLot)
+            _collChangeFromOperation: -int256(_singleRedemption.collLot),
+            _interestFactorSnapshot: Troves[_singleRedemption.troveId].interestFactorSnapshot
         });
 
         emit RedemptionFeePaidToTrove(
@@ -1209,7 +1213,8 @@ contract TroveManager is
             _stake: newStake,
             _annualInterestRate: interestRate,
             _snapshotOfTotalCollRedist: L_coll,
-            _snapshotOfTotalDebtRedist: L_usdxDebt
+            _snapshotOfTotalDebtRedist: L_usdxDebt,
+            _interestFactorSnapshot: Troves[_troveId].interestFactorSnapshot
         });
 
         emit TroveOperation({
@@ -1219,7 +1224,8 @@ contract TroveManager is
             _debtIncreaseFromRedist: 0,
             _debtChangeFromOperation: int256(_troveChange.debtIncrease),
             _collIncreaseFromRedist: 0,
-            _collChangeFromOperation: int256(_troveChange.collIncrease)
+            _collChangeFromOperation: int256(_troveChange.collIncrease),
+            _interestFactorSnapshot: Troves[_troveId].interestFactorSnapshot
         });
 
         emit TroveGasCompensation({
@@ -1267,7 +1273,8 @@ contract TroveManager is
             _stake: newStake,
             _annualInterestRate: annualInterestRate,
             _snapshotOfTotalCollRedist: L_coll,
-            _snapshotOfTotalDebtRedist: L_usdxDebt
+            _snapshotOfTotalDebtRedist: L_usdxDebt,
+            _interestFactorSnapshot: Troves[_troveId].interestFactorSnapshot
         });
 
         emit TroveOperation({
@@ -1279,7 +1286,8 @@ contract TroveManager is
                 int256(_troveChange.debtDecrease),
             _collIncreaseFromRedist: _troveChange.appliedRedistCollGain,
             _collChangeFromOperation: int256(_troveChange.collIncrease) -
-                int256(_troveChange.collDecrease)
+                int256(_troveChange.collDecrease),
+            _interestFactorSnapshot: Troves[_troveId].interestFactorSnapshot
         });
     }
 
@@ -1303,7 +1311,8 @@ contract TroveManager is
             _stake: 0,
             _annualInterestRate: 0,
             _snapshotOfTotalCollRedist: 0,
-            _snapshotOfTotalDebtRedist: 0
+            _snapshotOfTotalDebtRedist: 0,
+            _interestFactorSnapshot: 0
         });
 
         emit TroveOperation({
@@ -1315,7 +1324,8 @@ contract TroveManager is
                 int256(_troveChange.debtDecrease),
             _collIncreaseFromRedist: _troveChange.appliedRedistCollGain,
             _collChangeFromOperation: int256(_troveChange.collIncrease) -
-                int256(_troveChange.collDecrease)
+                int256(_troveChange.collDecrease),
+            _interestFactorSnapshot: 0
         });
     }
 
@@ -1390,7 +1400,8 @@ contract TroveManager is
             _stake: Troves[_troveId].stake,
             _annualInterestRate: interestRate,
             _snapshotOfTotalCollRedist: L_coll,
-            _snapshotOfTotalDebtRedist: L_usdxDebt
+            _snapshotOfTotalDebtRedist: L_usdxDebt,
+            _interestFactorSnapshot: Troves[_troveId].interestFactorSnapshot
         });
 
         emit TroveOperation({
@@ -1402,7 +1413,8 @@ contract TroveManager is
                 int256(_troveChange.debtDecrease),
             _collIncreaseFromRedist: _troveChange.appliedRedistCollGain,
             _collChangeFromOperation: int256(_troveChange.collIncrease) -
-                int256(_troveChange.collDecrease)
+                int256(_troveChange.collDecrease),
+            _interestFactorSnapshot: Troves[_troveId].interestFactorSnapshot
         });
     }
 

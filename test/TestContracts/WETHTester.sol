@@ -10,7 +10,7 @@ contract WETHTester is ERC20Faucet, IWETH {
     event Withdrawal(address indexed src, uint256 wad);
 
     constructor(uint256 _tapAmount, uint256 _tapPeriod)
-        ERC20Faucet("Wrapped Ether Tester", "WETH", _tapAmount, _tapPeriod)
+        ERC20Faucet("Wrapped XOC Tester", "WXOC", _tapAmount, _tapPeriod)
     {}
 
     receive() external payable {
