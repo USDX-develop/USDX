@@ -125,7 +125,10 @@ contract CollateralConfig is
 
         config.isFrozen = _isFrozen;
         config.isPaused = _isPaused;
-        config.annualInterestRate = _annualInterestRate;
+        if (config.annualInterestRate != _annualInterestRate) {
+            activePool.mintAggInterest();
+            config.annualInterestRate = _annualInterestRate;
+        }
         config.treasury = _treasury;
         config.borrowRatio = _borrowRatio;
         config.MCR = _MCR;
